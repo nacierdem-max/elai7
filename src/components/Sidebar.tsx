@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, AlertTriangle, FileText, BarChart3, Settings, ChevronLeft, ChevronRight, Archive, LogOut, Layers } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, BarChart3, Settings, ChevronLeft, ChevronRight, Archive, LogOut, Layers } from 'lucide-react';
 import { useRole } from '@/context/RoleContext';
 import { type PersonnelRoleKey } from '@/data/mockData';
 
@@ -24,14 +24,13 @@ const NAV_ITEMS: NavItem[] = [
     id: 'nav-risks', label: 'Riskler', icon: AlertTriangle, href: '/risks', badge: 18, badgeColor: 'bg-orange-100 text-orange-500',
     allowedRoles: ['proje-lideri', 'departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
   },
-  { id: 'nav-files', label: 'Dosya & Mesaj', icon: FileText, href: '/files' },
+  {
+    id: 'nav-logs', label: 'Log, Raporlar & Dosyalar', icon: Archive, href: '/logs', badge: 11, badgeColor: 'bg-yellow-100 text-yellow-600',
+    allowedRoles: ['proje-lideri', 'departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
+  },
   {
     id: 'nav-analytics', label: 'Analytics / AI', icon: BarChart3, href: '/analytics',
     allowedRoles: ['departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
-  },
-  {
-    id: 'nav-logs', label: 'Log & Raporlar', icon: Archive, href: '/logs', badge: 11, badgeColor: 'bg-yellow-100 text-yellow-600',
-    allowedRoles: ['proje-lideri', 'departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
   },
 ];
 

@@ -1,365 +1,628 @@
 'use client';
 import React, { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
+import { ACTIVITY_LOGS, PERSONS, PROJECTS, TASKS } from '@/data/mockData';
 import {
-  CHANGE_LOG,
-  DELAY_REPORTS,
-  DELAY_AI_SUMMARY,
-  PERSONS,
-  PROJECTS,
-  TASKS,
-  type ChangeLogEntry,
-} from '@/data/mockData';
-import { Clock, AlertTriangle, TrendingUp, ChevronDown, ChevronUp, Sparkles, Filter, RefreshCw } from 'lucide-react';
+  Archive, Search, Filter, Download, Eye, X, MessageSquare,
+  ChevronRight, FileText, Activity, AlertTriangle, CheckCircle2,
+  Clock, Plus, RefreshCw, TrendingUp, Paperclip
+} from 'lucide-react';
+import Link from 'next/link';
+import Icon from '@/components/ui/AppIcon';
 
-const ENTITY_COLORS: Record<string, string> = {
-  Görev: '#3b7dd8',
-  Proje: '#8b5cf6',
-  Risk: '#ef4444',
-  Personel: '#22c55e',
-  Dosya: '#f97316',
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface FileItem {
+  id: string;
+  name: string;
+  sender: string;
+  senderId: string;
+  projectId: string;
+  taskId: string;
+  type: 'pdf' | 'xls' | 'img' | 'dwg' | 'zip' | 'docx';
+  date: string;
+  size: string;
+}
+
+interface MessageItem {
+  id: string;
+  fromId: string;
+  toId: string;
+  summary: string;
+  date: string;
+  projectId: string;
+  taskId: string;
+  hasFile: boolean;
+  fileName?: string;
+}
+
+// ─── Static Data ──────────────────────────────────────────────────────────────
+
+const FILE_TYPE_COLORS: Record<string, string> = {
+  pdf: '#ef4444',
+  xls: '#22c55e',
+  img: '#3b7dd8',
+  dwg: '#f97316',
+  zip: '#eab308',
+  docx: '#8b5cf6',
 };
 
-function ChangeLogRow({ entry }: { entry: ChangeLogEntry }) {
-  const person = PERSONS.find(p => p.id === entry.changedById);
-  const project = entry.projectId ? PROJECTS.find(p => p.id === entry.projectId) : null;
-  const color = ENTITY_COLORS[entry.entityType] || '#94a3b8';
+const FILES: FileItem[] = [
+  { id: 'f-001', name: 'test_apr_v12.pdf', sender: 'Aytem Çelik', senderId: 'p-017', projectId: 'prj-003', taskId: 'tsk-003', type: 'pdf', date: '13.04.2026', size: '2.4 MB' },
+  { id: 'f-002', name: 'testdata_rev2.xls', sender: 'Elif Kaya', senderId: 'p-039', projectId: 'prj-002', taskId: 'tsk-002', type: 'xls', date: '14.05.2026', size: '1.1 MB' },
+  { id: 'f-003', name: 'hmi_export.png', sender: 'Zeynep Erdek', senderId: 'p-019', projectId: 'prj-004', taskId: 'tsk-005', type: 'img', date: '11.06.2026', size: '3.8 MB' },
+  { id: 'f-004', name: 'pcb_layout_rev4.dwg', sender: 'Ahmet Yılmaz', senderId: 'p-002', projectId: 'prj-008', taskId: 'tsk-001', type: 'dwg', date: '05.03.2026', size: '8.2 MB' },
+  { id: 'f-005', name: 'firmware_v24_src.zip', sender: 'Burak Kaya', senderId: 'p-020', projectId: 'prj-001', taskId: 'tsk-006', type: 'zip', date: '20.04.2026', size: '15.6 MB' },
+  { id: 'f-006', name: 'enerji_sapma_raporu.pdf', sender: 'Temen Yıldız', senderId: 'p-005', projectId: 'prj-002', taskId: 'tsk-010', type: 'pdf', date: '02.05.2026', size: '1.8 MB' },
+  { id: 'f-007', name: 'scada_guncelleme.docx', sender: 'Seda Arman', senderId: 'p-018', projectId: 'prj-003', taskId: 'tsk-013', type: 'docx', date: '01.05.2026', size: '0.9 MB' },
+  { id: 'f-008', name: 'termal_sim_v3.pdf', sender: 'Melih Şahin', senderId: 'p-031', projectId: 'prj-006', taskId: 'tsk-008', type: 'pdf', date: '10.04.2026', size: '4.2 MB' },
+  { id: 'f-009', name: 'iot_protokol_spec.pdf', sender: 'Uğur Arslan', senderId: 'p-055', projectId: 'prj-007', taskId: 'tsk-009', type: 'pdf', date: '16.05.2026', size: '2.1 MB' },
+  { id: 'f-010', name: 'guc_analiz_raporu.xls', sender: 'Turan Özcan', senderId: 'p-014', projectId: 'prj-009', taskId: 'tsk-007', type: 'xls', date: '05.04.2026', size: '0.7 MB' },
+  { id: 'f-011', name: 'mekanik_3d_model.dwg', sender: 'Arda Kılıç', senderId: 'p-032', projectId: 'prj-006', taskId: 'tsk-008', type: 'dwg', date: '12.04.2026', size: '22.4 MB' },
+  { id: 'f-012', name: 'test_raporu_donanim.pdf', sender: 'Mehmet Tan', senderId: 'p-040', projectId: 'prj-005', taskId: 'tsk-004', type: 'pdf', date: '12.04.2026', size: '3.1 MB' },
+  { id: 'f-013', name: 'mobil_debug_log.zip', sender: 'Zeynep Erdek', senderId: 'p-019', projectId: 'prj-004', taskId: 'tsk-005', type: 'zip', date: '04.05.2026', size: '5.3 MB' },
+  { id: 'f-014', name: 'lojistik_modul_tasarim.docx', sender: 'Hande Koç', senderId: 'p-076', projectId: 'prj-010', taskId: 'tsk-011', type: 'docx', date: '03.05.2026', size: '1.4 MB' },
+  { id: 'f-015', name: 'pcb_stok_listesi.xls', sender: 'Fatih Yıldız', senderId: 'p-003', projectId: 'prj-001', taskId: 'tsk-012', type: 'xls', date: '21.04.2026', size: '0.5 MB' },
+];
 
-  return (
-    <div
-      className="flex items-start gap-3 p-3 rounded-xl transition-all hover:bg-muted/30"
-      style={{ borderLeft: `3px solid ${entry.isImportant ? color : '#e8e8ed'}` }}
-    >
-      <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-        style={{ background: `${color}15`, color }}
-      >
-        {entry.entityType === 'Görev' ? '📋' : entry.entityType === 'Proje' ? '📁' : entry.entityType === 'Risk' ? '⚠️' : entry.entityType === 'Dosya' ? '📎' : '👤'}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span
-                className="text-xs font-bold px-1.5 py-0.5 rounded"
-                style={{ background: `${color}15`, color }}
-              >
-                {entry.entityType}
-              </span>
-              <span className="text-sm font-semibold text-foreground truncate">{entry.entityName}</span>
-              {entry.isImportant && (
-                <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: '#fef3c7', color: '#d97706' }}>
-                  Önemli
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground flex-wrap">
-              <span className="font-medium text-foreground">{entry.field}</span>
-              <span>değişti:</span>
-              <span className="line-through opacity-60">{entry.oldValue}</span>
-              <span>→</span>
-              <span className="font-semibold" style={{ color }}>{entry.newValue}</span>
-            </div>
-            {project && (
-              <p className="text-xs text-muted-foreground mt-0.5">📁 {project.name}</p>
-            )}
-          </div>
-          <div className="text-right shrink-0">
-            <p className="text-xs text-muted-foreground">{entry.timestamp.split(' ')[1]}</p>
-            <p className="text-xs text-muted-foreground">{entry.timestamp.split(' ')[0]}</p>
-          </div>
-        </div>
-        {person && (
-          <div className="flex items-center gap-1.5 mt-1.5">
-            <div className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#e8f0fb', color: '#0071e3', fontSize: '8px' }}>
-              {person.avatar.slice(0, 2)}
-            </div>
-            <span className="text-xs text-muted-foreground">{person.name}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+const MESSAGES: MessageItem[] = [
+  { id: 'm-001', fromId: 'p-002', toId: 'p-020', summary: '"Testte hata tespit edildi, PCB stok durumu kritik, tedarikçi görüşmesi lazım"', date: '12.05.2026', projectId: 'prj-001', taskId: 'tsk-001', hasFile: true, fileName: 'test_results.pdf' },
+  { id: 'm-002', fromId: 'p-003', toId: 'p-017', summary: '"Güncel versiyon yüklendi, SCADA modülü test edilebilir"', date: '13.05.2026', projectId: 'prj-002', taskId: 'tsk-010', hasFile: true, fileName: 'cost_report.xls' },
+  { id: 'm-003', fromId: 'p-039', toId: 'p-040', summary: '"Termal simülasyon sonuçları beklenenden %8 sapıyor, revizyon gerekiyor"', date: '10.05.2026', projectId: 'prj-002', taskId: 'tsk-002', hasFile: false },
+  { id: 'm-004', fromId: 'p-017', toId: 'p-018', summary: '"SCADA arayüz tasarımı için yeni gereksinimler eklendi, plan dışı görev açıldı"', date: '01.05.2026', projectId: 'prj-003', taskId: 'tsk-013', hasFile: false },
+  { id: 'm-005', fromId: 'p-031', toId: 'p-001', summary: '"Mekanik 3D model revizyonu tamamlandı, onay bekleniyor"', date: '15.04.2026', projectId: 'prj-006', taskId: 'tsk-008', hasFile: true, fileName: 'model_rev2.dwg' },
+  { id: 'm-006', fromId: 'p-019', toId: 'p-039', summary: '"Mobil uygulama GPS hatası kritik seviyede, deadline geçildi"', date: '11.05.2026', projectId: 'prj-004', taskId: 'tsk-005', hasFile: true, fileName: 'debug_log.zip' },
+  { id: 'm-007', fromId: 'p-055', toId: 'p-049', summary: '"IoT protokol entegrasyonu için tedarikçi onayı alındı"', date: '17.05.2026', projectId: 'prj-007', taskId: 'tsk-009', hasFile: false },
+  { id: 'm-008', fromId: 'p-014', toId: 'p-001', summary: '"Güç analiz raporu hazır, incelemenizi bekliyorum"', date: '06.04.2026', projectId: 'prj-009', taskId: 'tsk-007', hasFile: true, fileName: 'guc_analiz.xls' },
+];
+
+const ACTION_COLORS: Record<string, string> = {
+  'Görev Güncellendi': '#3b7dd8',
+  'Görev Tamamlandı': '#22c55e',
+  'Görev Eklendi': '#8b5cf6',
+  'Görev Gecikti': '#ef4444',
+  'Dosya Eklendi': '#f97316',
+  'Risk Açıldı': '#ef4444',
+  'Risk Güncellendi': '#eab308',
+  'Mesaj Gönderildi': '#06b6d4',
+};
+
+const ACTION_ICONS: Record<string, React.ElementType> = {
+  'Görev Güncellendi': RefreshCw,
+  'Görev Tamamlandı': CheckCircle2,
+  'Görev Eklendi': Plus,
+  'Görev Gecikti': Clock,
+  'Dosya Eklendi': FileText,
+  'Risk Açıldı': AlertTriangle,
+  'Risk Güncellendi': AlertTriangle,
+  'Mesaj Gönderildi': MessageSquare,
+};
+
+// ─── File Modal ───────────────────────────────────────────────────────────────
+
+interface FileModalProps {
+  file: FileItem;
+  onClose: () => void;
 }
 
-function DelayReportPanel() {
-  const [showAI, setShowAI] = useState(false);
-  const [expandedReport, setExpandedReport] = useState<string | null>(null);
+function FileModal({ file, onClose }: FileModalProps) {
+  const sender = PERSONS.find(p => p.id === file.senderId);
+  const project = PROJECTS.find(p => p.id === file.projectId);
+  const task = TASKS.find(t => t.id === file.taskId);
+  const typeColor = FILE_TYPE_COLORS[file.type] || '#94a3b8';
 
   return (
-    <div className="space-y-4">
-      {/* AI Summary Banner */}
-      <div
-        className="rounded-2xl p-5 border"
-        style={{ background: 'linear-gradient(135deg, #f0f7ff 0%, #e8f0fb 100%)', borderColor: '#bfdbfe' }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#0071e3' }}>
-              <Sparkles size={18} color="white" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-6 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold text-white" style={{ backgroundColor: typeColor }}>
+              {file.type.toUpperCase()}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-foreground">Yapay Zeka Özeti</h3>
-                <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
-                  Mock AI
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {DELAY_AI_SUMMARY.totalReports} gecikme raporu analiz edildi · {DELAY_AI_SUMMARY.generatedAt}
-              </p>
+              <h2 className="text-base font-bold text-foreground">{file.name}</h2>
+              <p className="text-xs text-muted-foreground">{file.size} · {file.date}</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowAI(!showAI)}
-            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
-            style={{ background: '#0071e3', color: 'white' }}
-          >
-            {showAI ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            {showAI ? 'Gizle' : 'Özeti Gör'}
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+            <X size={18} />
           </button>
         </div>
-
-        {showAI && (
-          <div className="mt-4 space-y-4">
-            {/* Top Themes */}
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Öne Çıkan Temalar</p>
-              <div className="flex flex-wrap gap-2">
-                {DELAY_AI_SUMMARY.topThemes.map((theme, i) => (
-                  <div
-                    key={`theme-${i}`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-                    style={{
-                      background: theme.severity === 'Yüksek' ? '#fee2e2' : '#fef3c7',
-                      color: theme.severity === 'Yüksek' ? '#dc2626' : '#d97706',
-                    }}
-                  >
-                    <span>{theme.theme}</span>
-                    <span className="opacity-70">({theme.count})</span>
-                  </div>
-                ))}
-              </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-muted/30 rounded-xl p-3 border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Gönderen</p>
+              <p className="text-sm font-semibold text-foreground">{sender?.name}</p>
+              <p className="text-xs text-muted-foreground">{sender?.department}</p>
             </div>
-
-            {/* Summary text */}
-            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.7)' }}>
-              <p className="text-sm leading-relaxed text-foreground">{DELAY_AI_SUMMARY.summary}</p>
-            </div>
-
-            {/* Action items */}
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Önerilen Aksiyonlar</p>
-              <ul className="space-y-2">
-                {DELAY_AI_SUMMARY.actionItems.map((item, i) => (
-                  <li key={`action-${i}`} className="flex items-start gap-2 text-sm">
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold" style={{ background: '#0071e3', color: 'white' }}>
-                      {i + 1}
-                    </div>
-                    <span className="text-foreground">{item}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="bg-muted/30 rounded-xl p-3 border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Tür</p>
+              <span className="text-sm font-bold uppercase" style={{ color: typeColor }}>.{file.type}</span>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Individual Reports */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-bold text-foreground">Gecikme Raporları ({DELAY_REPORTS.length})</h3>
-        {DELAY_REPORTS.map(report => {
-          const reporter = PERSONS.find(p => p.id === report.reporterId);
-          const task = TASKS.find(t => t.id === report.taskId);
-          const project = PROJECTS.find(p => p.id === report.projectId);
-          const isExpanded = expandedReport === report.id;
-
-          return (
-            <div
-              key={`delay-${report.id}`}
-              className="rounded-xl border overflow-hidden"
-              style={{ borderColor: '#e8e8ed' }}
-            >
-              <button
-                className="w-full flex items-start gap-3 p-4 text-left hover:bg-muted/20 transition-all"
-                onClick={() => setExpandedReport(isExpanded ? null : report.id)}
-              >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#fee2e2', color: '#dc2626' }}>
-                  <AlertTriangle size={14} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-foreground truncate">{task?.name}</p>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: '#fee2e2', color: '#dc2626' }}>
-                      +{report.delayDays} gün
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{project?.name} · {reporter?.name} · {report.date}</p>
-                </div>
-                {isExpanded ? <ChevronUp size={14} className="text-muted-foreground shrink-0 mt-1" /> : <ChevronDown size={14} className="text-muted-foreground shrink-0 mt-1" />}
-              </button>
-
-              {isExpanded && (
-                <div className="px-4 pb-4 space-y-3 border-t" style={{ borderColor: '#f0f0f0' }}>
-                  <div className="pt-3">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Gecikme Nedeni</p>
-                    <p className="text-sm text-foreground leading-relaxed">{report.delayReason}</p>
-                  </div>
-                  <div className="rounded-xl p-3" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <TrendingUp size={12} style={{ color: '#16a34a' }} />
-                      <p className="text-xs font-bold" style={{ color: '#16a34a' }}>İyileştirme Önerisi</p>
-                    </div>
-                    <p className="text-sm leading-relaxed" style={{ color: '#166534' }}>{report.improvementSuggestion}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+          {project && (
+            <Link href="/projects" onClick={onClose} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/60 border border-border transition-all cursor-pointer">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Proje</p>
+                <p className="text-sm font-semibold text-foreground">{project.name}</p>
+              </div>
+              <ChevronRight size={14} className="text-muted-foreground" />
+            </Link>
+          )}
+          {task && (
+            <Link href="/task-kanban-panel" onClick={onClose} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/60 border border-border transition-all cursor-pointer">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">İlgili Görev</p>
+                <p className="text-sm font-semibold text-foreground">{task.name}</p>
+              </div>
+              <ChevronRight size={14} className="text-muted-foreground" />
+            </Link>
+          )}
+          <div className="flex gap-2 pt-2">
+            <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors text-sm font-semibold">
+              <Eye size={14} /> Önizle
+            </button>
+            <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted/40 text-foreground border border-border hover:bg-muted transition-colors text-sm font-semibold">
+              <Download size={14} /> İndir
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
+type MainTab = 'logs' | 'files';
+type FileSubTab = 'dosyalar' | 'mesajlar';
+
 export default function LogsPage() {
-  const [activeTab, setActiveTab] = useState<'changelog' | 'delays'>('changelog');
-  const [entityFilter, setEntityFilter] = useState<string>('Tümü');
-  const [importantOnly, setImportantOnly] = useState(false);
+  const [mainTab, setMainTab] = useState<MainTab>('logs');
+  const [fileSubTab, setFileSubTab] = useState<FileSubTab>('dosyalar');
+  const [search, setSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState('Tümü');
+  const [typeFilter, setTypeFilter] = useState('Tümü');
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
 
-  const entityTypes = ['Tümü', 'Görev', 'Proje', 'Risk', 'Personel'];
+  const fileTypes = ['Tümü', 'pdf', 'xls', 'img', 'dwg', 'zip', 'docx'];
+  const actionTypes = ['Tümü', ...Array.from(new Set(ACTIVITY_LOGS.map(l => l.action)))];
 
-  const filteredLog = CHANGE_LOG.filter(entry => {
-    if (entityFilter !== 'Tümü' && entry.entityType !== entityFilter) return false;
-    if (importantOnly && !entry.isImportant) return false;
-    return true;
+  // Filtered logs
+  const filteredLogs = ACTIVITY_LOGS.filter(log => {
+    const user = PERSONS.find(p => p.id === log.userId);
+    const project = PROJECTS.find(p => p.id === log.projectId);
+    const matchSearch =
+      log.detail.toLowerCase().includes(search.toLowerCase()) ||
+      log.action.toLowerCase().includes(search.toLowerCase()) ||
+      user?.name.toLowerCase().includes(search.toLowerCase()) ||
+      project?.name.toLowerCase().includes(search.toLowerCase());
+    const matchAction = actionFilter === 'Tümü' || log.action === actionFilter;
+    return matchSearch && matchAction;
   });
 
-  const importantCount = CHANGE_LOG.filter(e => e.isImportant).length;
+  // Filtered files
+  const filteredFiles = FILES.filter(f => {
+    const matchSearch =
+      f.name.toLowerCase().includes(search.toLowerCase()) ||
+      f.sender.toLowerCase().includes(search.toLowerCase());
+    const matchType = typeFilter === 'Tümü' || f.type === typeFilter;
+    return matchSearch && matchType;
+  });
+
+  // Filtered messages
+  const filteredMessages = MESSAGES.filter(m => {
+    const from = PERSONS.find(p => p.id === m.fromId);
+    const to = PERSONS.find(p => p.id === m.toId);
+    return (
+      m.summary.toLowerCase().includes(search.toLowerCase()) ||
+      from?.name.toLowerCase().includes(search.toLowerCase()) ||
+      to?.name.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+
+  // Stats
+  const logStats = [
+    { label: 'Toplam Log', value: '980+', color: '#3b7dd8', icon: Activity },
+    { label: 'Bugün', value: String(ACTIVITY_LOGS.filter(l => l.date.startsWith('05.05')).length), color: '#22c55e', icon: CheckCircle2 },
+    { label: 'Risk Logu', value: String(ACTIVITY_LOGS.filter(l => l.action.includes('Risk')).length), color: '#ef4444', icon: AlertTriangle },
+    { label: 'Dosya Logu', value: String(ACTIVITY_LOGS.filter(l => l.action === 'Dosya Eklendi').length), color: '#f97316', icon: FileText },
+  ];
+
+  const fileStats = [
+    { label: 'Toplam Dosya', value: '4.300', color: '#3b7dd8', icon: FileText },
+    { label: 'Toplam Mesaj', value: '1.350', color: '#8b5cf6', icon: MessageSquare },
+    { label: 'Ekli Mesaj', value: String(MESSAGES.filter(m => m.hasFile).length), color: '#f97316', icon: Paperclip },
+    { label: 'Kullanıcı', value: '40', color: '#22c55e', icon: TrendingUp },
+  ];
+
+  const currentStats = mainTab === 'logs' ? logStats : fileStats;
 
   return (
     <AppLayout currentPath="/logs">
       <div className="space-y-6">
-        {/* Header */}
+
+        {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Log & Raporlar</h1>
+            <h1 className="text-2xl font-bold text-foreground">Log, Raporlar & Dosyalar</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Değişiklik kaydı ve gecikme raporları · Son 30 gün
+              Sistem aktivite logları · Dosya arşivi · Mesaj geçmişi
             </p>
           </div>
-          <button className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all" style={{ background: '#e8f0fb', color: '#0071e3' }}>
-            <RefreshCw size={14} />
-            Yenile
-          </button>
+          <div className="flex items-center gap-2">
+            <button className="btn-ghost text-sm flex items-center gap-2">
+              <Filter size={14} /> Filtrele
+            </button>
+            <button className="btn-primary text-sm flex items-center gap-2">
+              <Download size={14} /> Dışa Aktar
+            </button>
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: 'Toplam Değişiklik', value: CHANGE_LOG.length, color: '#3b7dd8', icon: '📝' },
-            { label: 'Önemli Değişiklik', value: importantCount, color: '#ef4444', icon: '🔴' },
-            { label: 'Gecikme Raporu', value: DELAY_REPORTS.length, color: '#f97316', icon: '⏰' },
-            { label: 'AI Özet Teması', value: DELAY_AI_SUMMARY.topThemes.length, color: '#8b5cf6', icon: '🤖' },
-          ].map(stat => (
-            <div key={`log-stat-${stat.label}`} className="card-base p-4 flex items-center gap-3">
-              <div className="text-2xl">{stat.icon}</div>
+        {/* ── Stats Row ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {currentStats.map(({ label, value, color, icon: Icon }) => (
+            <div key={label} className="card-base p-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}18` }}>
+                <Icon size={16} style={{ color }} />
+              </div>
               <div>
-                <p className="text-xl font-bold tabular-nums" style={{ color: stat.color }}>{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
+                <p className="text-lg font-bold text-foreground tabular-nums">{value}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: '#f5f5f7', border: '1px solid #e8e8ed' }}>
+        {/* ── Main Tabs ── */}
+        <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-xl w-fit border border-border">
           {[
-            { key: 'changelog', label: '🔔 Değişiklik Logu' },
-            { key: 'delays', label: '⏰ Gecikme Raporları' },
+            { id: 'logs' as MainTab, label: `Aktivite Logları (${ACTIVITY_LOGS.length})`, icon: Archive },
+            { id: 'files' as MainTab, label: `Dosya & Mesaj (${FILES.length + MESSAGES.length})`, icon: FileText },
           ].map(tab => (
             <button
-              key={`tab-${tab.key}`}
-              onClick={() => setActiveTab(tab.key as 'changelog' | 'delays')}
-              className="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150"
-              style={{
-                background: activeTab === tab.key ? '#ffffff' : 'transparent',
-                color: activeTab === tab.key ? '#1d1d1f' : '#6e6e73',
-                boxShadow: activeTab === tab.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-              }}
+              key={tab.id}
+              onClick={() => { setMainTab(tab.id); setSearch(''); }}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                mainTab === tab.id
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
+              <tab.icon size={14} />
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Change Log Tab */}
-        {activeTab === 'changelog' && (
-          <div className="space-y-4">
-            {/* Filters */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Filter size={14} className="text-muted-foreground" />
-              {entityTypes.map(type => (
+        {/* ── Search + Filters ── */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-md">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder={
+                mainTab === 'logs' ?'Log, kullanıcı veya proje ara...'
+                  : fileSubTab === 'dosyalar' ?'Dosya veya gönderen ara...' :'Mesaj veya kişi ara...'
+              }
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-muted/40 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-all"
+            />
+          </div>
+
+          {/* Log action filter */}
+          {mainTab === 'logs' && (
+            <div className="flex flex-wrap items-center gap-1">
+              {actionTypes.map(a => (
                 <button
-                  key={`entity-filter-${type}`}
-                  onClick={() => setEntityFilter(type)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                  style={{
-                    background: entityFilter === type ? '#0071e3' : '#f5f5f7',
-                    color: entityFilter === type ? 'white' : '#6e6e73',
-                    border: `1px solid ${entityFilter === type ? '#0071e3' : '#e8e8ed'}`,
-                  }}
+                  key={a}
+                  onClick={() => setActionFilter(a)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    actionFilter === a
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted/40 text-muted-foreground hover:bg-muted'
+                  }`}
                 >
-                  {type}
-                  {type !== 'Tümü' && (
-                    <span className="ml-1 opacity-70">
-                      {CHANGE_LOG.filter(e => e.entityType === type).length}
-                    </span>
-                  )}
+                  {a}
                 </button>
               ))}
-              <button
-                onClick={() => setImportantOnly(!importantOnly)}
-                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                style={{
-                  background: importantOnly ? '#fef3c7' : '#f5f5f7',
-                  color: importantOnly ? '#d97706' : '#6e6e73',
-                  border: `1px solid ${importantOnly ? '#fcd34d' : '#e8e8ed'}`,
-                }}
-              >
-                <AlertTriangle size={12} />
-                Sadece Önemli ({importantCount})
-              </button>
             </div>
+          )}
 
-            {/* Log entries */}
-            <div className="card-base p-4 space-y-1">
-              {filteredLog.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8 text-sm">Filtre kriterlerine uygun kayıt bulunamadı.</p>
-              ) : (
-                filteredLog.map(entry => (
-                  <ChangeLogRow key={`cl-row-${entry.id}`} entry={entry} />
-                ))
-              )}
+          {/* File type filter */}
+          {mainTab === 'files' && fileSubTab === 'dosyalar' && (
+            <div className="flex flex-wrap items-center gap-1">
+              {fileTypes.map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTypeFilter(t)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    typeFilter === t
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted/40 text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {t === 'Tümü' ? 'Tümü' : `.${t}`}
+                </button>
+              ))}
             </div>
+          )}
+        </div>
 
-            {/* Year transition note */}
-            <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: '#f0f7ff', border: '1px solid #bfdbfe' }}>
-              <Clock size={16} style={{ color: '#0071e3' }} className="shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold" style={{ color: '#1d4ed8' }}>Yıl Geçişi Takibi</p>
-                <p className="text-xs mt-0.5" style={{ color: '#3b82f6' }}>
-                  Aralık 2025&apos;ten Ocak 2026&apos;ya geçen projeler otomatik olarak yeni dönemde devam ediyor.
-                  Log kaydında &quot;Yıl Geçişi&quot; etiketiyle işaretlenmiş kayıtları görebilirsiniz.
-                </p>
+        {/* ════════════════════════════════════════════════════════════
+            SECTION A — Aktivite Logları
+        ════════════════════════════════════════════════════════════ */}
+        {mainTab === 'logs' && (
+          <div className="card-base overflow-hidden">
+            <div className="px-4 py-3 border-b border-border bg-muted/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Archive size={15} className="text-primary" />
+                <span className="text-sm font-semibold text-foreground">Aktivite Logları</span>
+                <span className="text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full">{filteredLogs.length} kayıt</span>
               </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-muted/20">
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Aksiyon</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Kullanıcı</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Detay</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden md:table-cell">Proje</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden lg:table-cell">Sonuç</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Tarih</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredLogs.map(log => {
+                    const user = PERSONS.find(p => p.id === log.userId);
+                    const project = PROJECTS.find(p => p.id === log.projectId);
+                    const actionColor = ACTION_COLORS[log.action] || '#94a3b8';
+                    const ActionIcon = ACTION_ICONS[log.action] || Activity;
+
+                    return (
+                      <tr key={log.id} className="hover:bg-muted/30 transition-colors group">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${actionColor}18` }}>
+                              <ActionIcon size={13} style={{ color: actionColor }} />
+                            </div>
+                            <span className="text-xs font-semibold whitespace-nowrap" style={{ color: actionColor }}>{log.action}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+                              {user?.avatar?.slice(0, 2) ?? '??'}
+                            </div>
+                            <span className="text-xs text-foreground">{user?.name ?? '—'}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs text-muted-foreground max-w-[220px] truncate">{log.detail}</p>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className="text-xs text-muted-foreground">{project?.name ?? '—'}</span>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <span
+                            className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: `${actionColor}15`, color: actionColor }}
+                          >
+                            {log.result}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell">
+                          <span className="text-xs text-muted-foreground font-mono whitespace-nowrap">{log.date}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {/* Delay Reports Tab */}
-        {activeTab === 'delays' && <DelayReportPanel />}
+        {/* ════════════════════════════════════════════════════════════
+            SECTION B — Dosya & Mesaj (with sub-tabs)
+        ════════════════════════════════════════════════════════════ */}
+        {mainTab === 'files' && (
+          <div className="space-y-4">
+
+            {/* File type distribution chips */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {['pdf', 'xls', 'img', 'dwg', 'zip', 'docx'].map(t => {
+                const count = FILES.filter(f => f.type === t).length;
+                const color = FILE_TYPE_COLORS[t];
+                return (
+                  <button
+                    key={t}
+                    onClick={() => { setTypeFilter(typeFilter === t ? 'Tümü' : t); setFileSubTab('dosyalar'); }}
+                    className={`p-3 rounded-xl border text-center transition-all duration-150 hover:scale-[1.02] ${
+                      typeFilter === t ? 'border-current shadow-lg' : 'border-border bg-card hover:bg-muted/30'
+                    }`}
+                    style={typeFilter === t ? { borderColor: color, backgroundColor: `${color}15` } : {}}
+                  >
+                    <p className="text-lg font-bold tabular-nums" style={{ color }}>{count}</p>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">.{t}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Sub-tabs */}
+            <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-xl w-fit">
+              {[
+                { id: 'dosyalar' as FileSubTab, label: `Dosyalar (${FILES.length})`, icon: FileText },
+                { id: 'mesajlar' as FileSubTab, label: `Mesajlar (${MESSAGES.length})`, icon: MessageSquare },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setFileSubTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
+                    fileSubTab === tab.id
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <tab.icon size={14} />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Files Table */}
+            {fileSubTab === 'dosyalar' && (
+              <div className="card-base overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-muted/10 flex items-center gap-2">
+                  <FileText size={15} className="text-primary" />
+                  <span className="text-sm font-semibold text-foreground">Dosya Arşivi</span>
+                  <span className="text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full">{filteredFiles.length} dosya</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/20">
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Dosya Adı</th>
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Gönderen</th>
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden md:table-cell">Proje</th>
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden lg:table-cell">Görev</th>
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Tür</th>
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Tarih</th>
+                        <th className="px-4 py-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {filteredFiles.map(file => {
+                        const project = PROJECTS.find(p => p.id === file.projectId);
+                        const task = TASKS.find(t => t.id === file.taskId);
+                        const typeColor = FILE_TYPE_COLORS[file.type] || '#94a3b8';
+                        return (
+                          <tr
+                            key={file.id}
+                            onClick={() => setSelectedFile(file)}
+                            className="hover:bg-muted/30 transition-colors cursor-pointer group"
+                          >
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ backgroundColor: typeColor }}>
+                                  {file.type.slice(0, 2).toUpperCase()}
+                                </div>
+                                <span className="text-sm font-medium text-foreground">{file.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 hidden sm:table-cell">
+                              <span className="text-xs text-foreground">{file.sender}</span>
+                            </td>
+                            <td className="px-4 py-3 hidden md:table-cell">
+                              <span className="text-xs text-muted-foreground">{project?.name}</span>
+                            </td>
+                            <td className="px-4 py-3 hidden lg:table-cell">
+                              <span className="text-xs text-muted-foreground truncate max-w-[120px] block">{task?.name}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs font-bold uppercase" style={{ color: typeColor }}>.{file.type}</span>
+                            </td>
+                            <td className="px-4 py-3 hidden sm:table-cell">
+                              <span className="text-xs text-muted-foreground font-mono">{file.date}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={e => { e.stopPropagation(); setSelectedFile(file); }} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors">
+                                  <Eye size={12} />
+                                </button>
+                                <button onClick={e => e.stopPropagation()} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors">
+                                  <Download size={12} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Messages Table */}
+            {fileSubTab === 'mesajlar' && (
+              <div className="card-base overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-muted/10 flex items-center gap-2">
+                  <MessageSquare size={15} className="text-primary" />
+                  <span className="text-sm font-semibold text-foreground">Mesaj Geçmişi</span>
+                  <span className="text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full">{filteredMessages.length} mesaj</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/20">
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Gönderen</th>
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Alıcı</th>
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">Mesaj Özeti</th>
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden md:table-cell">Proje / Görev</th>
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Tarih</th>
+                        <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 hidden lg:table-cell">Dosya / Ek</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {filteredMessages.map(msg => {
+                        const from = PERSONS.find(p => p.id === msg.fromId);
+                        const to = PERSONS.find(p => p.id === msg.toId);
+                        const project = PROJECTS.find(p => p.id === msg.projectId);
+                        const task = TASKS.find(t => t.id === msg.taskId);
+                        return (
+                          <tr key={msg.id} className="hover:bg-muted/30 transition-colors cursor-pointer group">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-primary/20 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+                                  {from?.avatar?.slice(0, 2) ?? '??'}
+                                </div>
+                                <span className="text-xs font-semibold text-foreground">{from?.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 hidden sm:table-cell">
+                              <span className="text-xs text-muted-foreground">{to?.name}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">{msg.summary}</p>
+                            </td>
+                            <td className="px-4 py-3 hidden md:table-cell">
+                              <div>
+                                <p className="text-xs text-foreground truncate">{project?.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">{task?.name}</p>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 hidden sm:table-cell">
+                              <span className="text-xs text-muted-foreground font-mono">{msg.date}</span>
+                            </td>
+                            <td className="px-4 py-3 hidden lg:table-cell">
+                              {msg.hasFile && (
+                                <div className="flex items-center gap-1 text-cyan-400">
+                                  <FileText size={12} />
+                                  <span className="text-xs">{msg.fileName}</span>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {selectedFile && (
+        <FileModal file={selectedFile} onClose={() => setSelectedFile(null)} />
+      )}
     </AppLayout>
   );
 }
