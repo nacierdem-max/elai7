@@ -25,11 +25,11 @@ const NAV_ITEMS: NavItem[] = [
     allowedRoles: ['proje-lideri', 'departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
   },
   {
-    id: 'nav-logs', label: 'Log, Raporlar & Dosyalar', icon: Archive, href: '/logs', badge: 11, badgeColor: 'bg-yellow-100 text-yellow-600',
+    id: 'nav-logs', label: 'Log', icon: Archive, href: '/logs', badge: 11, badgeColor: 'bg-yellow-100 text-yellow-600',
     allowedRoles: ['proje-lideri', 'departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
   },
   {
-    id: 'nav-analytics', label: 'Analytics / AI', icon: BarChart3, href: '/analytics',
+    id: 'nav-analytics', label: 'AI Asistan', icon: BarChart3, href: '/analytics',
     allowedRoles: ['departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
   },
 ];

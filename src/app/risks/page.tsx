@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { RISKS, PERSONS, PROJECTS, TASKS, type Risk, type RiskStatus } from '@/data/mockData';
-import { AlertTriangle, Search, Filter, X, ChevronRight, FileText, User, Calendar } from 'lucide-react';
+import { AlertTriangle, Search, X, ChevronRight, FileText, User, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
 const RISK_STATUS_COLORS: Record<RiskStatus, string> = {
@@ -143,9 +143,6 @@ export default function RisksPage() {
             <p className="text-muted-foreground text-sm mt-1">{counts.total} toplam · {counts.critical} kritik · {counts.closed} kapatıldı</p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="btn-ghost text-sm flex items-center gap-2">
-              <Filter size={14} /> Filtrele
-            </button>
             <button className="btn-primary text-sm flex items-center gap-2">
               📊 Rapor Al
             </button>
