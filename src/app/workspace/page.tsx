@@ -647,7 +647,7 @@ function WorkspaceInner() {
   });
 
   // ── Team state ──────────────────────────────────────────────────────────────
-  const [teamView, setTeamView] = useState<TeamView>('grid');
+  const [teamView, setTeamView] = useState<TeamView>('gantt');
   const [teamSearch, setTeamSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState<Department | 'Tümü'>('Tümü');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
