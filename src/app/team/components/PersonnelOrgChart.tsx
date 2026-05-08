@@ -65,6 +65,36 @@ const ROLE_ICONS: Record<string, React.ElementType> = {
   staff: User,
 };
 
+// ─── Edge color palette per department ───────────────────────────────────────
+const DEPT_EDGE_COLORS: Record<string, string> = {
+  'Yazılım':        '#6366f1', // indigo
+  'Tasarım':        '#ec4899', // pink
+  'Pazarlama':      '#f59e0b', // amber
+  'İnsan Kaynakları': '#10b981', // emerald
+  'Finans':         '#14b8a6', // teal
+  'Operasyon':      '#f97316', // orange
+  'Ar-Ge':          '#8b5cf6', // violet
+  'Satış':          '#06b6d4', // cyan
+  'Hukuk':          '#84cc16', // lime
+  'Lojistik':       '#e11d48', // rose
+};
+const DIRECTOR_EDGE_COLOR = '#0071e3'; // primary blue for director→leader edges
+const DEFAULT_EDGE_COLOR  = '#a78bfa'; // fallback
+
+function getEdgeColor(edge: OrgEdge, nodes: OrgNode[]): string {
+  // Director → leader connection
+  if (edge.source === 'nuh-bey') return DIRECTOR_EDGE_COLOR;
+  // Leader → staff: use the target node's department color
+  const targetNode = nodes.find(n => n.id === edge.target);
+  const dept = targetNode?.department;
+  if (dept && DEPT_EDGE_COLORS[dept]) return DEPT_EDGE_COLORS[dept];
+  // Fallback: source node department
+  const sourceNode = nodes.find(n => n.id === edge.source);
+  const srcDept = sourceNode?.department;
+  if (srcDept && DEPT_EDGE_COLORS[srcDept]) return DEPT_EDGE_COLORS[srcDept];
+  return DEFAULT_EDGE_COLOR;
+}
+
 // ─── Bezier curve generator ───────────────────────────────────────────────────
 function getWirePath(sx: number, sy: number, tx: number, ty: number): string {
   const distY = Math.max(Math.abs(ty - sy) * 0.5, 50);
@@ -578,6 +608,8 @@ export default function PersonnelOrgChart() {
               const isSel = selectedIds.has(edge.id);
               const isHighlighted = hoveredEdges.has(edge.id);
               const isDimmed = hoveredNodeId !== null && !isHighlighted && !isSel;
+              const edgeBaseColor = getEdgeColor(edge, nodes);
+              const edgeColor = isSel ? '#ef4444' : isHighlighted ? edgeBaseColor : isDimmed ? '#d2d2d7' : edgeBaseColor;
 
               return (
                 <g
@@ -589,16 +621,14 @@ export default function PersonnelOrgChart() {
                   <path
                     d={path}
                     fill="none"
-                    stroke={
-                      isSel ? '#ef4444' : isHighlighted ? '#0071e3' : isDimmed ? '#d2d2d7' : '#d2d2d7'
-                    }
+                    stroke={edgeColor}
                     strokeWidth={isSel ? 4 : isHighlighted ? 3.5 : 2}
                     strokeLinecap="round"
-                    opacity={isDimmed ? 0.25 : 1}
+                    opacity={isDimmed ? 0.2 : 0.85}
                     style={{ transition: 'stroke 0.15s, opacity 0.15s, stroke-width 0.15s' }}
                   />
-                  <circle cx={sx} cy={sy} r="4" fill={isSel ? '#ef4444' : isHighlighted ? '#0071e3' : '#d2d2d7'} opacity={isDimmed ? 0.25 : 1} />
-                  <circle cx={tx} cy={ty} r="4" fill={isSel ? '#ef4444' : isHighlighted ? '#0071e3' : '#d2d2d7'} opacity={isDimmed ? 0.25 : 1} />
+                  <circle cx={sx} cy={sy} r="4" fill={edgeColor} opacity={isDimmed ? 0.2 : 0.85} />
+                  <circle cx={tx} cy={ty} r="4" fill={edgeColor} opacity={isDimmed ? 0.2 : 0.85} />
                 </g>
               );
             })}
