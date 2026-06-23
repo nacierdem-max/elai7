@@ -54,9 +54,6 @@ export default function TaskKanbanContent() {
               </button>
             ))}
           </div>
-          <button className="btn-ghost text-sm flex items-center gap-2">
-            📤 Dışa Aktar
-          </button>
           <button className="btn-primary text-sm flex items-center gap-2">
             + Yeni Görev
           </button>

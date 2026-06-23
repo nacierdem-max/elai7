@@ -33,28 +33,28 @@ const V_GAP = 60;   // vertical gap between rows
 
 const ROLE_STYLES: Record<string, { bgClass: string; borderClass: string; shadowClass: string; textClass: string }> = {
   director: {
-    bgClass: 'bg-indigo-600',
-    borderClass: 'border-indigo-400',
-    shadowClass: 'shadow-indigo-500/30',
-    textClass: 'text-white',
+    bgClass: 'bg-primary',
+    borderClass: 'border-primary',
+    shadowClass: 'shadow-primary/20',
+    textClass: 'text-primary-foreground',
   },
   leader: {
     bgClass: 'bg-emerald-500',
     borderClass: 'border-emerald-400',
-    shadowClass: 'shadow-emerald-500/30',
+    shadowClass: 'shadow-emerald-500/20',
     textClass: 'text-white',
   },
   manager: {
     bgClass: 'bg-amber-500',
     borderClass: 'border-amber-400',
-    shadowClass: 'shadow-amber-500/30',
+    shadowClass: 'shadow-amber-500/20',
     textClass: 'text-white',
   },
   staff: {
-    bgClass: 'bg-white dark:bg-slate-800',
-    borderClass: 'border-slate-200 dark:border-slate-600',
-    shadowClass: 'shadow-slate-200/50',
-    textClass: 'text-slate-800 dark:text-slate-200',
+    bgClass: 'bg-card',
+    borderClass: 'border-border',
+    shadowClass: 'shadow-card',
+    textClass: 'text-foreground',
   },
 };
 
@@ -64,6 +64,36 @@ const ROLE_ICONS: Record<string, React.ElementType> = {
   manager: Factory,
   staff: User,
 };
+
+// ─── Edge color palette per department ───────────────────────────────────────
+const DEPT_EDGE_COLORS: Record<string, string> = {
+  'Yazılım':        '#6366f1', // indigo
+  'Tasarım':        '#ec4899', // pink
+  'Pazarlama':      '#f59e0b', // amber
+  'İnsan Kaynakları': '#10b981', // emerald
+  'Finans':         '#14b8a6', // teal
+  'Operasyon':      '#f97316', // orange
+  'Ar-Ge':          '#8b5cf6', // violet
+  'Satış':          '#06b6d4', // cyan
+  'Hukuk':          '#84cc16', // lime
+  'Lojistik':       '#e11d48', // rose
+};
+const DIRECTOR_EDGE_COLOR = '#0071e3'; // primary blue for director→leader edges
+const DEFAULT_EDGE_COLOR  = '#a78bfa'; // fallback
+
+function getEdgeColor(edge: OrgEdge, nodes: OrgNode[]): string {
+  // Director → leader connection
+  if (edge.source === 'nuh-bey') return DIRECTOR_EDGE_COLOR;
+  // Leader → staff: use the target node's department color
+  const targetNode = nodes.find(n => n.id === edge.target);
+  const dept = targetNode?.department;
+  if (dept && DEPT_EDGE_COLORS[dept]) return DEPT_EDGE_COLORS[dept];
+  // Fallback: source node department
+  const sourceNode = nodes.find(n => n.id === edge.source);
+  const srcDept = sourceNode?.department;
+  if (srcDept && DEPT_EDGE_COLORS[srcDept]) return DEPT_EDGE_COLORS[srcDept];
+  return DEFAULT_EDGE_COLOR;
+}
 
 // ─── Bezier curve generator ───────────────────────────────────────────────────
 function getWirePath(sx: number, sy: number, tx: number, ty: number): string {
@@ -423,28 +453,28 @@ export default function PersonnelOrgChart() {
   }, [handleWheel]);
 
   return (
-    <div className="relative w-full rounded-2xl border border-border overflow-hidden bg-slate-50 dark:bg-slate-900" style={{ height: '75vh', minHeight: 520 }}>
+    <div className="relative w-full rounded-2xl border border-border overflow-hidden bg-background" style={{ height: '75vh', minHeight: 520 }}>
       {/* Background dot grid */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-20"
+        className="absolute inset-0 pointer-events-none opacity-10"
         style={{
-          backgroundImage: 'radial-gradient(#94a3b8 1.5px, transparent 1.5px)',
+          backgroundImage: 'radial-gradient(var(--border) 1.5px, transparent 1.5px)',
           backgroundSize: `${24 * view.k}px ${24 * view.k}px`,
           backgroundPosition: `${view.x}px ${view.y}px`,
         }}
       />
 
       {/* ── TOP TOOLBAR ── */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl px-3 py-2 shadow-lg border border-border">
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-card/95 backdrop-blur-md rounded-2xl px-3 py-2 shadow-elevated border border-border">
         <div className="flex items-center gap-2 mr-1">
-          <div className="bg-indigo-500 text-white p-1.5 rounded-lg"><Layers size={15} /></div>
+          <div className="bg-primary text-primary-foreground p-1.5 rounded-lg"><Layers size={15} /></div>
           <span className="font-bold text-foreground text-sm hidden sm:block">Personel Atama</span>
         </div>
         <div className="h-5 w-px bg-border" />
 
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-bold transition-colors shadow"
+          className="flex items-center gap-1 px-2.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-bold transition-colors shadow-sm"
         >
           <Plus size={14} /> Ekle
         </button>
@@ -452,7 +482,7 @@ export default function PersonnelOrgChart() {
         {selectedIds.size > 0 && (
           <button
             onClick={deleteSelected}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors shadow"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
           >
             <Trash2 size={14} /> Sil ({selectedIds.size})
           </button>
@@ -460,16 +490,16 @@ export default function PersonnelOrgChart() {
 
         <div className="h-5 w-px bg-border mx-0.5" />
 
-        <button onClick={() => performZoom(-1)} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground" title="Uzaklaş"><ZoomOut size={16} /></button>
+        <button onClick={() => performZoom(-1)} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground transition-colors" title="Uzaklaş"><ZoomOut size={16} /></button>
         <span className="text-xs font-bold w-10 text-center text-muted-foreground">{Math.round(view.k * 100)}%</span>
-        <button onClick={() => performZoom(1)} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground" title="Yakınlaş"><ZoomIn size={16} /></button>
+        <button onClick={() => performZoom(1)} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground transition-colors" title="Yakınlaş"><ZoomIn size={16} /></button>
 
         <div className="h-5 w-px bg-border mx-0.5" />
-        <button onClick={fitView} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground" title="Ekrana Sığdır"><Maximize size={16} /></button>
-        <button onClick={resetLayout} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground" title="Sıfırla"><RefreshCw size={16} /></button>
+        <button onClick={fitView} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground transition-colors" title="Ekrana Sığdır"><Maximize size={16} /></button>
+        <button onClick={resetLayout} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground transition-colors" title="Sıfırla"><RefreshCw size={16} /></button>
         <button
           onClick={() => setShowMinimap(!showMinimap)}
-          className={`p-1.5 rounded-lg transition-colors ${showMinimap ? 'bg-blue-100 text-blue-600' : 'hover:bg-muted text-muted-foreground'}`}
+          className={`p-1.5 rounded-lg transition-colors ${showMinimap ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
           title="Harita"
         >
           <MapIcon size={16} />
@@ -483,19 +513,19 @@ export default function PersonnelOrgChart() {
           onPointerDown={() => setIsAddModalOpen(false)}
         >
           <div
-            className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl border border-border overflow-hidden"
+            className="bg-card w-full max-w-sm rounded-2xl shadow-modal border border-border overflow-hidden"
             onPointerDown={e => e.stopPropagation()}
           >
             <div className="p-4 border-b border-border flex justify-between items-center">
               <h2 className="font-bold text-foreground flex items-center gap-2"><Users size={16} /> Yeni Personel Ekle</h2>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
+              <button onClick={() => setIsAddModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors"><X size={18} /></button>
             </div>
             <form onSubmit={handleAddNode} className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Ad Soyad</label>
                 <input
                   autoFocus required type="text"
-                  className="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                  className="input-base"
                   value={newNodeData.name}
                   onChange={e => setNewNodeData({ ...newNodeData, name: e.target.value })}
                   placeholder="Örn: Veli Yılmaz"
@@ -505,7 +535,7 @@ export default function PersonnelOrgChart() {
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Unvan / Rol</label>
                 <input
                   required type="text"
-                  className="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                  className="input-base"
                   value={newNodeData.role}
                   onChange={e => setNewNodeData({ ...newNodeData, role: e.target.value })}
                   placeholder="Örn: Veri Analisti"
@@ -514,7 +544,7 @@ export default function PersonnelOrgChart() {
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Seviye</label>
                 <select
-                  className="w-full bg-muted/40 border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+                  className="input-base"
                   value={newNodeData.type}
                   onChange={e => setNewNodeData({ ...newNodeData, type: e.target.value as OrgNode['type'] })}
                 >
@@ -524,7 +554,7 @@ export default function PersonnelOrgChart() {
                   <option value="director">Direktör</option>
                 </select>
               </div>
-              <button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-lg transition-colors">
+              <button type="submit" className="btn-primary w-full">
                 Ekle
               </button>
             </form>
@@ -578,6 +608,8 @@ export default function PersonnelOrgChart() {
               const isSel = selectedIds.has(edge.id);
               const isHighlighted = hoveredEdges.has(edge.id);
               const isDimmed = hoveredNodeId !== null && !isHighlighted && !isSel;
+              const edgeBaseColor = getEdgeColor(edge, nodes);
+              const edgeColor = isSel ? '#ef4444' : isHighlighted ? edgeBaseColor : isDimmed ? '#d2d2d7' : edgeBaseColor;
 
               return (
                 <g
@@ -589,16 +621,14 @@ export default function PersonnelOrgChart() {
                   <path
                     d={path}
                     fill="none"
-                    stroke={
-                      isSel ? '#ef4444' : isHighlighted ?'#3b82f6' : isDimmed ?'#e2e8f0' :'#cbd5e1'
-                    }
-                    strokeWidth={isSel ? 4 : isHighlighted ? 3.5 : 2.5}
+                    stroke={edgeColor}
+                    strokeWidth={isSel ? 4 : isHighlighted ? 3.5 : 2}
                     strokeLinecap="round"
-                    opacity={isDimmed ? 0.25 : 1}
+                    opacity={isDimmed ? 0.2 : 0.85}
                     style={{ transition: 'stroke 0.15s, opacity 0.15s, stroke-width 0.15s' }}
                   />
-                  <circle cx={sx} cy={sy} r="4" fill={isSel ? '#ef4444' : isHighlighted ? '#3b82f6' : '#94a3b8'} opacity={isDimmed ? 0.25 : 1} />
-                  <circle cx={tx} cy={ty} r="4" fill={isSel ? '#ef4444' : isHighlighted ? '#3b82f6' : '#94a3b8'} opacity={isDimmed ? 0.25 : 1} />
+                  <circle cx={sx} cy={sy} r="4" fill={edgeColor} opacity={isDimmed ? 0.2 : 0.85} />
+                  <circle cx={tx} cy={ty} r="4" fill={edgeColor} opacity={isDimmed ? 0.2 : 0.85} />
                 </g>
               );
             })}
@@ -606,7 +636,7 @@ export default function PersonnelOrgChart() {
               <path
                 d={getWirePath(wiring.startX, wiring.startY, wiring.currX, wiring.currY)}
                 fill="none"
-                stroke="#3b82f6"
+                stroke="#0071e3"
                 strokeWidth="3"
                 strokeDasharray="6,5"
                 opacity="0.8"
@@ -632,10 +662,10 @@ export default function PersonnelOrgChart() {
                 onMouseLeave={() => setHoveredNodeId(null)}
                 className={`absolute rounded-2xl border-2 flex flex-col select-none group
                   ${style.bgClass} ${style.borderClass}
-                  ${isSel ? 'ring-4 ring-blue-500/60 scale-105 z-50 shadow-2xl' : ''}
-                  ${isHovered ? 'ring-4 ring-blue-400/80 z-50 shadow-2xl scale-105' : ''}
-                  ${isConnected ? 'ring-2 ring-blue-300/60 z-30 shadow-xl' : ''}
-                  ${!isSel && !isHovered ? `z-10 shadow-lg ${style.shadowClass}` : ''}
+                  ${isSel ? 'ring-4 ring-primary/50 scale-105 z-50 shadow-modal' : ''}
+                  ${isHovered ? 'ring-4 ring-primary/60 z-50 shadow-modal scale-105' : ''}
+                  ${isConnected ? 'ring-2 ring-primary/30 z-30 shadow-elevated' : ''}
+                  ${!isSel && !isHovered ? `z-10 shadow-card ${style.shadowClass}` : ''}
                 `}
                 style={{
                   transform: `translate(${node.x}px, ${node.y}px)`,
@@ -692,15 +722,15 @@ export default function PersonnelOrgChart() {
       </div>
 
       {/* Legend */}
-      <div className="absolute bottom-3 left-3 z-20 flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-xl px-3 py-2 border border-border shadow text-xs">
+      <div className="absolute bottom-3 left-3 z-20 flex items-center gap-2 bg-card/95 backdrop-blur-md rounded-xl px-3 py-2 border border-border shadow-card text-xs">
         {[
-          { label: 'Direktör', color: 'bg-indigo-600' },
-          { label: 'Lider', color: 'bg-emerald-500' },
-          { label: 'Yönetici', color: 'bg-amber-500' },
-          { label: 'Personel', color: 'bg-slate-300' },
+          { label: 'Direktör', colorClass: 'bg-primary' },
+          { label: 'Lider', colorClass: 'bg-emerald-500' },
+          { label: 'Yönetici', colorClass: 'bg-amber-500' },
+          { label: 'Personel', colorClass: 'bg-muted' },
         ].map(item => (
           <div key={item.label} className="flex items-center gap-1">
-            <div className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+            <div className={`w-2.5 h-2.5 rounded-full ${item.colorClass}`} />
             <span className="text-muted-foreground">{item.label}</span>
           </div>
         ))}
@@ -743,12 +773,12 @@ function MinimapPanel({
   const vwHeight = viewportSize.h / view.k;
 
   return (
-    <div className="minimap-panel absolute bottom-3 right-3 z-20 rounded-xl border border-border shadow-lg overflow-hidden bg-white/90 dark:bg-slate-800/90 backdrop-blur-md" style={{ width: mmW, height: mmH }}>
+    <div className="minimap-panel absolute bottom-3 right-3 z-20 rounded-xl border border-border shadow-elevated overflow-hidden bg-card/95 backdrop-blur-md" style={{ width: mmW, height: mmH }}>
       <div className="relative w-full h-full">
         {nodes.map(n => (
           <div
             key={n.id}
-            className={`absolute rounded-sm ${selectedIds.has(n.id) ? 'bg-blue-500' : (n.type === 'director' ? 'bg-indigo-500' : n.type === 'leader' ? 'bg-emerald-500' : n.type === 'manager' ? 'bg-amber-500' : 'bg-slate-400')}`}
+            className={`absolute rounded-sm ${selectedIds.has(n.id) ? 'bg-primary' : (n.type === 'director' ? 'bg-primary' : n.type === 'leader' ? 'bg-emerald-500' : n.type === 'manager' ? 'bg-amber-500' : 'bg-muted-foreground/40')}`}
             style={{
               left: ox + n.x * scale,
               top: oy + n.y * scale,
@@ -758,7 +788,7 @@ function MinimapPanel({
           />
         ))}
         <div
-          className="absolute border-2 border-blue-500 bg-blue-500/10 cursor-move"
+          className="absolute border-2 border-primary bg-primary/10 cursor-move"
           style={{
             left: ox + vwLeft * scale,
             top: oy + vwTop * scale,

@@ -15,7 +15,7 @@ export default function TeamPage() {
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState<Department | 'Tümü'>('Tümü');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
-  const [pageView, setPageView] = useState<PageView>('grid');
+  const [pageView, setPageView] = useState<PageView>('gantt');
 
   const filtered = PERSONS.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||

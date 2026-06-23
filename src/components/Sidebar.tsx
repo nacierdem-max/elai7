@@ -1,9 +1,9 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, AlertTriangle, FileText, BarChart3, Settings, ChevronLeft, ChevronRight, Archive, LogOut, Layers } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, BarChart3, Settings, ChevronLeft, ChevronRight, Archive, LogOut, Layers, Brain, Zap } from 'lucide-react';
 import { useRole } from '@/context/RoleContext';
 import { type PersonnelRoleKey } from '@/data/mockData';
 
@@ -14,7 +14,7 @@ interface NavItem {
   href: string;
   badge?: number;
   badgeColor?: string;
-  allowedRoles?: PersonnelRoleKey[]; // undefined = all roles
+  allowedRoles?: PersonnelRoleKey[];
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -24,15 +24,22 @@ const NAV_ITEMS: NavItem[] = [
     id: 'nav-risks', label: 'Riskler', icon: AlertTriangle, href: '/risks', badge: 18, badgeColor: 'bg-orange-100 text-orange-500',
     allowedRoles: ['proje-lideri', 'departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
   },
-  { id: 'nav-files', label: 'Dosya & Mesaj', icon: FileText, href: '/files' },
   {
-    id: 'nav-analytics', label: 'Analytics / AI', icon: BarChart3, href: '/analytics',
-    allowedRoles: ['departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
-  },
-  {
-    id: 'nav-logs', label: 'Log & Raporlar', icon: Archive, href: '/logs', badge: 11, badgeColor: 'bg-yellow-100 text-yellow-600',
+    id: 'nav-logs', label: 'Log', icon: Archive, href: '/logs', badge: 11, badgeColor: 'bg-yellow-100 text-yellow-600',
     allowedRoles: ['proje-lideri', 'departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
   },
+  {
+    id: 'nav-analytics', label: 'AI Asistan', icon: BarChart3, href: '/analytics',
+    allowedRoles: ['departman-lideri', 'urun-yoneticisi', 'arge-temsilcisi', 'arge-yoneticisi'],
+  },
+];
+
+const AI_TASKS = [
+  'Görev önceliklendiriliyor',
+  'Risk analizi yapılıyor',
+  'Takvim optimize ediliyor',
+  'Ekip yükü dengeleniyor',
+  'Rapor hazırlanıyor',
 ];
 
 interface SidebarProps {
@@ -41,8 +48,21 @@ interface SidebarProps {
 
 export default function Sidebar({ currentPath = '/dashboard' }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [aiTaskIdx, setAiTaskIdx] = useState(0);
+  const [aiActive, setAiActive] = useState(true);
   const { currentRole, roleDefinition, clearRole } = useRole();
   const router = useRouter();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAiActive(false);
+      setTimeout(() => {
+        setAiTaskIdx(i => (i + 1) % AI_TASKS.length);
+        setAiActive(true);
+      }, 400);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     clearRole();
@@ -65,7 +85,7 @@ export default function Sidebar({ currentPath = '/dashboard' }: SidebarProps) {
       className="flex flex-col shrink-0 z-20 transition-all duration-300 ease-in-out"
       style={{
         width: collapsed ? '64px' : '240px',
-        background: 'rgba(255,255,255,0.85)',
+        background: 'rgba(255,255,255,0.92)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderRight: '1px solid #d2d2d7',
@@ -81,7 +101,10 @@ export default function Sidebar({ currentPath = '/dashboard' }: SidebarProps) {
           {!collapsed && (
             <div className="min-w-0">
               <span className="font-bold text-sm tracking-tight block" style={{ color: '#1d1d1f' }}>EliarArGe</span>
-              <span className="text-xs block leading-none" style={{ color: '#6e6e73' }}>Ar-Ge Yönetimi</span>
+              <span className="text-xs block leading-none flex items-center gap-1" style={{ color: '#0071e3' }}>
+                <Zap size={9} />
+                AI Destekli
+              </span>
             </div>
           )}
         </div>
@@ -106,6 +129,24 @@ export default function Sidebar({ currentPath = '/dashboard' }: SidebarProps) {
         >
           <ChevronRight size={16} />
         </button>
+      )}
+
+      {/* AI Status Banner */}
+      {!collapsed && (
+        <div className="mx-2 mt-2 rounded-xl px-3 py-2.5 flex items-center gap-2" style={{ background: 'linear-gradient(135deg, #f0f7ff, #e8f0fb)', border: '1px solid #0071e320' }}>
+          <div className="relative shrink-0">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0071e3, #5ac8fa)' }}>
+              <Brain size={12} className="text-white" />
+            </div>
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-400 border border-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold" style={{ color: '#0071e3' }}>AI Aktif</p>
+            <p className={`text-xs truncate transition-opacity duration-300 ${aiActive ? 'opacity-100' : 'opacity-0'}`} style={{ color: '#6e6e73' }}>
+              {AI_TASKS[aiTaskIdx]}
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Nav */}
@@ -163,7 +204,6 @@ export default function Sidebar({ currentPath = '/dashboard' }: SidebarProps) {
           {!collapsed && <span>Ayarlar</span>}
         </Link>
 
-        {/* Logout */}
         <button
           onClick={handleLogout}
           className={`w-full flex items-center gap-3 px-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:bg-red-50 ${collapsed ? 'justify-center' : ''}`}

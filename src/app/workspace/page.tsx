@@ -647,7 +647,7 @@ function WorkspaceInner() {
   });
 
   // ── Team state ──────────────────────────────────────────────────────────────
-  const [teamView, setTeamView] = useState<TeamView>('grid');
+  const [teamView, setTeamView] = useState<TeamView>('gantt');
   const [teamSearch, setTeamSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState<Department | 'Tümü'>('Tümü');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
@@ -991,7 +991,6 @@ function WorkspaceInner() {
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <button className="btn-ghost text-sm flex items-center gap-2">📤 Dışa Aktar</button>
                 <button className="btn-primary text-sm flex items-center gap-2">+ Yeni Görev</button>
               </div>
             </div>
